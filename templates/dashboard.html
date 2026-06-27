@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics – {{ link.short_code }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <a href="/">← Back</a>
+        <h1>Analytics: /{{ link.short_code }}</h1>
+        <p class="muted">→ <a href="{{ link.original_url }}" target="_blank">{{ link.original_url }}</a></p>
+
+        <div class="stat-grid">
+            <div class="stat-card">
+                <span id="total-clicks">—</span>
+                <label>Total Clicks</label>
+            </div>
+        </div>
+
+        <h2>Clicks – Last 7 Days</h2>
+        <canvas id="clicksChart" height="100"></canvas>
+
+        <h2>Top Referrers</h2>
+        <table id="referrers-table">
+            <thead><tr><th>Source</th><th>Clicks</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const code = "{{ link.short_code }}";
+
+        fetch(`/api/analytics/${code}`)
+            .then(r => r.json())
+            .then(data => {
+                // Total
+                document.getElementById('total-clicks').textContent = data.total_clicks;
+
+                // Line chart
+                new Chart(document.getElementById('clicksChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.days,
+                        datasets: [{
+                            label: 'Clicks',
+                            data: data.counts,
+                            borderColor: '#7c3aed',
+                            backgroundColor: 'rgba(124,58,237,0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+
+                // Referrers
+                const tbody = document.querySelector('#referrers-table tbody');
+                data.referrers.forEach(r => {
+                    const row = `<tr><td>${r.source}</td><td>${r.count}</td></tr>`;
+                    tbody.innerHTML += row;
+                });
+                if (!data.referrers.length) {
+                    tbody.innerHTML = '<tr><td colspan="2">No data yet</td></tr>';
+                }
+            });
+    </script>
+</body>
+</html>
